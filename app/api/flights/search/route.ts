@@ -5,10 +5,10 @@ import { Flight, ApiResponse } from "@/app/types";
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
 
+  // Read query parameters
   const origin = searchParams.get("origin");
   const destination = searchParams.get("destination");
   const date = searchParams.get("date");
-  const cabin = searchParams.get("cabin") ?? "economy";
 
   // Validation
   if (!origin || !destination || !date) {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Query
+  // Create the Supabase client
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -40,13 +40,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Filter out fully booked flights
-  const available = (data as Flight[]).filter(
-    (f) => f.seats_booked < f.seats_total,
-  );
-
   return NextRequest.json<ApiResponse<Flight[]>>({
-    data: available,
+    data,
     error: null,
   });
 }

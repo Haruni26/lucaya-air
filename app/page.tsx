@@ -1,65 +1,161 @@
-import Image from "next/image";
+import BookingCard from "@/app/components/booking-card";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="flex flex-col">
+      {/* Hero Section */}
+      <section
+        className="relative flex flex-col items-center justify-center min-h-[85vh] px-4 pt-24 pb-32 text-center overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(160deg, var(--color-ocean) 0%, #1a4a6e 60%, #0e7c86 100%)",
+        }}
+      >
+        {/* Decorative background circles */}
+        <div
+          className="absolute -top-20 -right-20 w-100 h-100 rounded-full opacity-10"
+          style={{ background: "var(--color-reef)" }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+        <div
+          className="absolute -bottom-15 -left-15 w-75 h-75 rounded-full opacity-10"
+          style={{ background: "var(--color-gold)" }}
+        />
+
+        {/* Airline name */}
+        <p
+          className="text-sm font-medium tracking-[0.3em] uppercase mb-4 opacity-70"
+          style={{ color: "var(--color-reef)", fontFamily: "var(--font-body)" }}
+        >
+          Welcome to
+        </p>
+        <h1
+          className="text-7xl md:text-8xl font-light mb-4 animate-fade-up"
+          style={{ color: "white", fontFamily: "var(--font-display)" }}
+        >
+          Lucaya Air
+        </h1>
+        <p
+          className="text-lg md:text-xl mb-16 max-w-md opacity-80 animate-fade-up"
+          style={{
+            color: "white",
+            fontFamily: "var(--font-body)",
+            fontWeight: 300,
+          }}
+        >
+          Your gateway to the Caribbean — Nassau, the Exumas, and beyond.
+        </p>
+
+        {/* Booking Card */}
+        <div className="w-full max-w-3xl animate-fade-up">
+          <BookingCard />
+        </div>
+      </section>
+
+      {/* Destinations teaser */}
+      <section
+        className="py-32 px-4"
+        style={{ background: "var(--color-sand)" }}
+      >
+        <div className="max-w-5xl mx-auto text-center">
+          <h2
+            className="text-5xl font-light mb-4"
+            style={{
+              fontFamily: "var(--font-display)",
+              color: "var(--color-ocean)",
+            }}
+          >
+            Where will you go?
+          </h2>
+          <p
+            className="text-base max-w-md mx-auto mb-12"
+            style={{
+              color: "var(--color-driftwood)",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            Direct routes across the Bahamas and beyond — island hopping made
+            simple.
           </p>
+
+          {/* Destination cards — static for now, can be fetched from Supabase later */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {DESTINATIONS.map((dest) => (
+              <div
+                key={dest.iata}
+                className="card p-6 text-left transition-all duration-300 hover:-translate-y-1"
+                style={{ boxShadow: "var(--shadow-card)" }}
+              >
+                <div
+                  className="text-3xl mb-1 font-bold"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    color: "var(--color-lagoon)",
+                  }}
+                >
+                  {dest.iata}
+                </div>
+                <div
+                  className="text-lg font-medium mb-1"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    color: "var(--color-ocean)",
+                  }}
+                >
+                  {dest.city}
+                </div>
+                <div
+                  className="text-sm"
+                  style={{
+                    color: "var(--color-driftwood)",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >
+                  {dest.country}
+                </div>
+                <div
+                  className="mt-4 text-sm font-medium"
+                  style={{
+                    color: "var(--color-coral)",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >
+                  From ${dest.from_price} USD
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
+
+// Static destination data — swap this out for a Supabase fetch later
+const DESTINATIONS = [
+  {
+    iata: "GGT",
+    city: "George Town",
+    country: "Exuma, Bahamas",
+    from_price: 89,
+  },
+  {
+    iata: "MHH",
+    city: "Marsh Harbour",
+    country: "Abaco, Bahamas",
+    from_price: 79,
+  },
+  {
+    iata: "GCM",
+    city: "Grand Cayman",
+    country: "Cayman Islands",
+    from_price: 219,
+  },
+  {
+    iata: "PLS",
+    city: "Providenciales",
+    country: "Turks & Caicos",
+    from_price: 189,
+  },
+  { iata: "MBJ", city: "Montego Bay", country: "Jamaica", from_price: 179 },
+  { iata: "MIA", city: "Miami", country: "Florida, USA", from_price: 129 },
+];

@@ -1,26 +1,200 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-ocean: #0a2342;
+  --color-lagoon: #0e7c86;
+  --color-reef: #00b4c8;
+  --color-coral: #e8654a;
+  --color-gold: #e9b84a;
+  --color-sand: #faf5ee;
+  --color-driftwood: #8c7b6b;
+  --color-shell: #ffffff;
+
+  --font-display: var(--font-cormorant), "Georgia", serif;
+  --font-body: var(--font-dm-sans), "Helvetica Neue", sans-serif;
+
+  --radius-card: 1.25rem;
+  --radius-input: 0.5rem;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 8px 40px -8px rgba(10, 35, 66, 0.18);
+  --shadow-hover: 0 16px 48px -8px rgba(10, 35, 66, 0.28);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  color: var(--color-ocean);
+  background-color: var(--color-sand);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-coral);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-primary:hover {
+  background-color: #d05438;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ocean);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1.5px solid rgba(10, 35, 66, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--color-lagoon);
+  color: var(--color-lagoon);
+}
+
+.card {
+  background: var(--color-shell);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.booking-tab {
+  position: relative;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  color: var(--color-driftwood);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.booking-tab.active {
+  color: var(--color-ocean);
+}
+.booking-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: var(--color-coral);
+  border-radius: 2px 2px 0 0;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-driftwood);
+  font-family: var(--font-body);
+  margin-bottom: 0.375rem;
+}
+.field-input {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-ocean);
+  background: var(--color-sand);
+  border: 1px solid #e0d9d0;
+  border-radius: var(--radius-input);
+  outline: none;
+  transition: all 0.15s ease;
+}
+.field-input:focus {
+  border-color: var(--color-lagoon);
+  box-shadow: 0 0 0 3px rgba(14, 124, 134, 0.12);
+  background: var(--color-shell);
+}
+
+.boarding-pass {
+  background: linear-gradient(135deg, var(--color-ocean) 0%, #163660 100%);
+  border-radius: var(--radius-card);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.boarding-pass::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: rgba(0, 180, 200, 0.12);
+  pointer-events: none;
+}
+.boarding-pass-tear {
+  border-top: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.animate-fade-up {
+  animation: fadeUp 0.6s ease forwards;
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
