@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { Flight, ApiResponse } from "@/types";
+import { createClient } from "@/app/lib/supabase/server";
+import { Flight, ApiResponse } from "@/app/types";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
