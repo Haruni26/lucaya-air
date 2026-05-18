@@ -1,33 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import type { Flight, CabinClass, TripType } from "@/app/types";
-import {
-  formatTime,
-  formatDate,
-  formatDuration,
-} from "@/app/lib/utils/flights";
+import { useRouter } from "next/navigation";
+import AirportSearch from "@/app/components/ui/airportSearch";
+import type { Flight, CabinClass, TripType, Airport } from "@/app/types";
+import { formatTime, formatDuration } from "@/app/lib/utils/flights";
 import { formatUSD } from "@/app/lib/utils/currency";
 
-// Types
 interface SearchForm {
   tripType: TripType;
-  origin: string;
-  destination: string;
+  origin: string; // IATA code
+  destination: string; // IATA code
+  originLabel: string; // display name for AirportSearch
+  destinationLabel: string;
   departDate: string;
   returnDate: string;
   passengers: number;
   cabin: CabinClass;
 }
 
-// Component
 export default function BookTab() {
+  const router = useRouter();
   const today = new Date().toISOString().split("T")[0];
 
   const [form, setForm] = useState<SearchForm>({
     tripType: "roundtrip",
     origin: "",
     destination: "",
+    originLabel: "",
+    destinationLabel: "",
     departDate: "",
     returnDate: "",
     passengers: 1,
@@ -39,52 +40,90 @@ export default function BookTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
-  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
 
-  // Generic field updater
+  // Generic state updater — K must be a key of SearchForm
   function set<K extends keyof SearchForm>(key: K, value: SearchForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  // Called when the user picks an airport from the AirportSearch dropdown
+  function handleOriginSelect(airport: Airport) {
+    setForm((prev) => ({
+      ...prev,
+      origin: airport.iata,
+      originLabel: `${airport.city} (${airport.iata})`,
+    }));
+  }
+
+  function handleDestinationSelect(airport: Airport) {
+    setForm((prev) => ({
+      ...prev,
+      destination: airport.iata,
+      destinationLabel: `${airport.city} (${airport.iata})`,
+    }));
+  }
+
+  // Swap origin and destination (and their labels)
+  function handleSwap() {
+    setForm((prev) => ({
+      ...prev,
+      origin: prev.destination,
+      destination: prev.origin,
+      originLabel: prev.destinationLabel,
+      destinationLabel: prev.originLabel,
+    }));
+  }
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!form.origin || !form.destination) {
+      setError("Please select both origin and destination airports.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setFlights([]);
     setReturnFlights([]);
-    setSelectedFlight(null);
     setSearched(false);
 
     try {
-      // Search outbound flights
       const outParams = new URLSearchParams({
-        origin: form.origin.toUpperCase().trim(),
-        destination: form.destination.toUpperCase().trim(),
+        origin: form.origin,
+        destination: form.destination,
         date: form.departDate,
         cabin: form.cabin,
         passengers: String(form.passengers),
       });
 
-      const outRes = await fetch(`/api/flights/search?${outParams}`);
-      const outJson = await outRes.json();
-      if (!outRes.ok) throw new Error(outJson.error ?? "Search failed");
-      setFlights(outJson.data ?? []);
+      // PARALLEL FETCH: Promise.all fires both requests at the same time
+      // and waits until BOTH are done. Much faster than two sequential awaits.
+      // If we only need one (one-way), we still use an array for consistency.
+      const requests: Promise<Response>[] = [
+        fetch(`/api/flights/search?${outParams}`),
+      ];
 
-      // If round trip, also search return flights
       if (form.tripType === "roundtrip" && form.returnDate) {
         const retParams = new URLSearchParams({
-          origin: form.destination.toUpperCase().trim(),
-          destination: form.origin.toUpperCase().trim(),
+          origin: form.destination,
+          destination: form.origin,
           date: form.returnDate,
           cabin: form.cabin,
           passengers: String(form.passengers),
         });
-
-        const retRes = await fetch(`/api/flights/search?${retParams}`);
-        const retJson = await retRes.json();
-        if (retRes.ok) setReturnFlights(retJson.data ?? []);
+        requests.push(fetch(`/api/flights/search?${retParams}`));
       }
 
+      const responses = await Promise.all(requests);
+      const [outJson, retJson] = await Promise.all(
+        responses.map((r) => r.json()),
+      );
+
+      if (!responses[0].ok) throw new Error(outJson.error ?? "Search failed");
+
+      setFlights(outJson.data ?? []);
+      if (retJson) setReturnFlights(retJson.data ?? []);
       setSearched(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -93,20 +132,20 @@ export default function BookTab() {
     }
   }
 
-  // Swap origin and destination
-  function handleSwap() {
-    setForm((prev) => ({
-      ...prev,
-      origin: prev.destination,
-      destination: prev.origin,
-    }));
+  // Navigate to the booking page when a flight is selected.
+  // We pass the cabin class as a query param so the booking page knows
+  // which price to charge without the user having to pick again.
+  function handleSelectFlight(flight: Flight) {
+    router.push(
+      `/book/${flight.id}?cabin=${form.cabin}&passengers=${form.passengers}`,
+    );
   }
 
   return (
     <div>
       {/* Trip type pills */}
-      <div className="flex gap-2 mb-5">
-        {(["roundtrip", "oneway", "multicity"] as TripType[]).map((t) => (
+      <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+        {(["roundtrip", "oneway"] as TripType[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -127,18 +166,13 @@ export default function BookTab() {
               transition: "all 0.15s ease",
             }}
           >
-            {t === "roundtrip"
-              ? "Round Trip"
-              : t === "oneway"
-                ? "One Way"
-                : "Multi-City"}
+            {t === "roundtrip" ? "Round Trip" : "One Way"}
           </button>
         ))}
       </div>
 
-      {/* Search form  */}
       <form onSubmit={handleSearch}>
-        {/* Row 1: Origin / Swap / Destination */}
+        {/* Origin / Swap / Destination */}
         <div
           style={{
             display: "grid",
@@ -148,19 +182,13 @@ export default function BookTab() {
             marginBottom: "12px",
           }}
         >
-          <div>
-            <label className="field-label">From</label>
-            <input
-              className="field-input"
-              placeholder="e.g. NAS"
-              value={form.origin}
-              onChange={(e) => set("origin", e.target.value)}
-              maxLength={3}
-              required
-            />
-          </div>
+          <AirportSearch
+            label="From"
+            placeholder="City or airport"
+            value={form.originLabel}
+            onSelect={handleOriginSelect}
+          />
 
-          {/* Swap button */}
           <button
             type="button"
             onClick={handleSwap}
@@ -179,25 +207,20 @@ export default function BookTab() {
               marginBottom: "1px",
               transition: "all 0.15s ease",
             }}
-            title="Swap origin and destination"
+            title="Swap airports"
           >
             ⇄
           </button>
 
-          <div>
-            <label className="field-label">To</label>
-            <input
-              className="field-input"
-              placeholder="e.g. MIA"
-              value={form.destination}
-              onChange={(e) => set("destination", e.target.value)}
-              maxLength={3}
-              required
-            />
-          </div>
+          <AirportSearch
+            label="To"
+            placeholder="City or airport"
+            value={form.destinationLabel}
+            onSelect={handleDestinationSelect}
+          />
         </div>
 
-        {/* Row 2: Departure / Return dates */}
+        {/* Dates */}
         <div
           style={{
             display: "grid",
@@ -212,28 +235,27 @@ export default function BookTab() {
             <input
               className="field-input"
               type="date"
-              value={form.departDate}
-              onChange={(e) => set("departDate", e.target.value)}
               min={today}
               required
+              value={form.departDate}
+              onChange={(e) => set("departDate", e.target.value)}
             />
           </div>
-
           {form.tripType === "roundtrip" && (
             <div>
               <label className="field-label">Return Date</label>
               <input
                 className="field-input"
                 type="date"
+                min={form.departDate || today}
                 value={form.returnDate}
                 onChange={(e) => set("returnDate", e.target.value)}
-                min={form.departDate || today}
               />
             </div>
           )}
         </div>
 
-        {/* Row 3: Passengers / Cabin */}
+        {/* Passengers + Cabin */}
         <div
           style={{
             display: "grid",
@@ -256,7 +278,6 @@ export default function BookTab() {
               ))}
             </select>
           </div>
-
           <div>
             <label className="field-label">Cabin Class</label>
             <select
@@ -297,27 +318,22 @@ export default function BookTab() {
       {/* Results */}
       {searched && !loading && (
         <div style={{ marginTop: "24px" }}>
-          {/* Outbound flights */}
-          <ResultsSection
+          <FlightResults
             label={
               form.tripType === "roundtrip"
-                ? `Outbound · ${form.origin.toUpperCase()} → ${form.destination.toUpperCase()}`
+                ? `Outbound · ${form.originLabel} → ${form.destinationLabel}`
                 : undefined
             }
             flights={flights}
             cabin={form.cabin}
-            onSelect={setSelectedFlight}
-            selectedId={selectedFlight?.id}
+            onSelect={handleSelectFlight}
           />
-
-          {/* Return flights (round trip only) */}
           {form.tripType === "roundtrip" && (
-            <ResultsSection
-              label={`Return · ${form.destination.toUpperCase()} → ${form.origin.toUpperCase()}`}
+            <FlightResults
+              label={`Return · ${form.destinationLabel} → ${form.originLabel}`}
               flights={returnFlights}
               cabin={form.cabin}
-              onSelect={() => {}}
-              selectedId={undefined}
+              onSelect={handleSelectFlight}
               style={{ marginTop: "20px" }}
             />
           )}
@@ -327,20 +343,17 @@ export default function BookTab() {
   );
 }
 
-// Results section
-function ResultsSection({
+function FlightResults({
   label,
   flights,
   cabin,
   onSelect,
-  selectedId,
   style,
 }: {
   label?: string;
   flights: Flight[];
   cabin: CabinClass;
   onSelect: (f: Flight) => void;
-  selectedId: string | undefined;
   style?: React.CSSProperties;
 }) {
   return (
@@ -360,7 +373,6 @@ function ResultsSection({
           {label}
         </p>
       )}
-
       {flights.length === 0 ? (
         <p
           style={{
@@ -371,16 +383,15 @@ function ResultsSection({
             fontFamily: "var(--font-body)",
           }}
         >
-          No flights found. Try a different date or route.
+          No flights found. Try a different date.
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {flights.map((flight) => (
+          {flights.map((f) => (
             <FlightCard
-              key={flight.id}
-              flight={flight}
+              key={f.id}
+              flight={f}
               cabin={cabin}
-              selected={selectedId === flight.id}
               onSelect={onSelect}
             />
           ))}
@@ -390,20 +401,18 @@ function ResultsSection({
   );
 }
 
-// Individual flight card
 function FlightCard({
   flight,
   cabin,
-  selected,
   onSelect,
 }: {
   flight: Flight;
   cabin: CabinClass;
-  selected: boolean;
   onSelect: (f: Flight) => void;
 }) {
-  const multiplier = { economy: 1.0, business: 2.2, first: 3.5 }[cabin];
-  const price = Math.round(flight.base_price * multiplier);
+  const price = Math.round(
+    flight.base_price * { economy: 1, business: 2.2, first: 3.5 }[cabin],
+  );
   const seatsLeft = flight.seats_total - flight.seats_booked;
 
   return (
@@ -415,14 +424,11 @@ function FlightCard({
         gap: "12px",
         padding: "14px 16px",
         borderRadius: "12px",
-        border: `1.5px solid ${selected ? "var(--color-lagoon)" : "#E0D9D0"}`,
-        background: selected ? "rgba(14,124,134,0.04)" : "var(--color-sand)",
+        border: "1.5px solid #E0D9D0",
+        background: "var(--color-sand)",
         transition: "all 0.15s ease",
-        cursor: "pointer",
       }}
-      onClick={() => onSelect(flight)}
     >
-      {/* Times + route */}
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
         <div style={{ textAlign: "center" }}>
           <div
@@ -447,7 +453,6 @@ function FlightCard({
             {flight.origin}
           </div>
         </div>
-
         <div style={{ textAlign: "center", minWidth: "64px" }}>
           <div
             style={{
@@ -488,7 +493,6 @@ function FlightCard({
             {flight.flight_number}
           </div>
         </div>
-
         <div style={{ textAlign: "center" }}>
           <div
             style={{
@@ -513,8 +517,6 @@ function FlightCard({
           </div>
         </div>
       </div>
-
-      {/* Price + select */}
       <div style={{ textAlign: "right", flexShrink: 0 }}>
         <div
           style={{
@@ -544,14 +546,11 @@ function FlightCard({
           )}
         </div>
         <button
-          className={selected ? "btn-ghost" : "btn-primary"}
+          className="btn-primary"
           style={{ fontSize: "12px", padding: "6px 16px" }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(flight);
-          }}
+          onClick={() => onSelect(flight)}
         >
-          {selected ? "Selected ✓" : "Select"}
+          Select →
         </button>
       </div>
     </div>
