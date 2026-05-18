@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase/server";
 import { Flight, ApiResponse } from "@/app/types";
 
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   // Validation
   if (!origin || !destination || !date) {
-    return NextRequest.json<ApiResponse<null>>(
+    return NextResponse.json<ApiResponse<null>>(
       { data: null, error: "origin, destination, and date are required" },
       { status: 400 },
     );
@@ -34,13 +34,13 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     console.error("Supabase error:", error);
-    return NextRequest.json<ApiResponse<null>>(
+    return NextResponse.json<ApiResponse<null>>(
       { data: null, error: "Failed to fetch flights" },
       { status: 500 },
     );
   }
 
-  return NextRequest.json<ApiResponse<Flight[]>>({
+  return NextResponse.json<ApiResponse<Flight[]>>({
     data,
     error: null,
   });
